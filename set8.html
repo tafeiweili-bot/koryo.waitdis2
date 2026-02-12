@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>待ち時間 管理画面</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      margin-bottom: 25px;
+    }
+
+    input[type="number"] {
+      font-size: 20px;
+      width: 100px;
+      text-align: center;
+    }
+
+    .status-select {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 25px;
+      padding: 12px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #4cbf77;
+      color: white;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 15px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>待ち時間 管理</h1>
+
+    <p>
+      待ち時間：
+      <input type="number" id="minutes" min="0"> 分
+    </p>
+
+    <div class="status-select">
+      <strong>混雑状況</strong>
+      <label><input type="radio" name="status" value="low" checked> 空いている</label>
+      <label><input type="radio" name="status" value="mid"> やや混雑</label>
+      <label><input type="radio" name="status" value="high"> 混雑</label>
+    </div>
+
+    <button onclick="save()">保存</button>
+    <p id="message"></p>
+  </div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    const client = supabase.createClient(
+      "https://uyedrpfchbsilwtcrkpu.supabase.co",
+      "sb_publishable_5yHag-b18StN3FOd4d4D6A_pm76IA5e"
+    );
+
+    async function save() {
+      const minutes = document.getElementById("minutes").value;
+      const status = document.querySelector('input[name="status"]:checked').value;
+
+      if (minutes === "") {
+        document.getElementById("message").textContent = "待ち時間を入力してください";
+        return;
+      }
+
+      const updated = new Date().toLocaleString("ja-JP");
+
+      const { error } = await client
+        .from("wait_status")
+        .update({
+          minutes,
+          status,
+          updated
+        })
+        .eq("id", 1);
+
+      if (error) {
+        document.getElementById("message").textContent = "エラーが発生しました";
+        console.error(error);
+        return;
+      }
+
+      document.getElementById("message").textContent = "保存しました！";
+    }
+
+    window.onload = async function() {
+      const { data, error } = await client
+        .from("wait_status")
+        .select("*")
+        .eq("id", 1)
+        .single();
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      if (data) {
+        document.getElementById("minutes").value = data.minutes;
+
+        const radios = document.querySelectorAll('input[name="status"]');
+        radios.forEach(radio => {
+          if (radio.value === data.status) radio.checked = true;
+        });
+      }
+    }
+  </script>
+
+</body>
+</html>
